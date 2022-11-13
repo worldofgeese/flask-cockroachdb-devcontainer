@@ -1,16 +1,23 @@
 [tool.poetry]
-name = "name"
+name = "hello-world"
 version = "0.1.0"
 description = ""
-authors = ["Your Name <you@example.com>"]
+authors = ["Tao Hansen <59834693+worldofgeese@users.noreply.github.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
 requests = "^2.28.1"
 Flask = "^2.2.2"
+gunicorn = "^20.1.0"
+psycopg2-binary = "^2.9.3"
+Flask-SQLAlchemy = "^2.5.1"
+sqlalchemy-cockroachdb = "^1.4.3"
 
 [tool.poetry.dev-dependencies]
 black = "^22.8.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.2.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
