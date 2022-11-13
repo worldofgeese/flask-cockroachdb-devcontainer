@@ -1,0 +1,45 @@
+services:
+  web:
+    build: 
+      context: ./web
+      dockerfile: Dockerfile.dev
+    command: python manage.py run -h 0.0.0.0
+    volumes:
+      - ./web/:/app/
+    ports:
+      - 5000:5000
+    environment:
+      - FLASK_APP=project/__init__.py
+      - FLASK_DEBUG=1
+      - DATABASE_URL=cockroachdb://root@roach-0:26257/defaultdb
+      - SQL_HOST=roach-0
+      - SQL_PORT=26257
+      - DATABASE=cockroachdb
+
+  roach-0:
+    command: start --insecure --join=roach-0,roach-1,roach-2 
+    volumes:
+      - "cockroach_data:/cockroach/cockroach-data"
+    ports:
+      - "26257:26257"
+      - "8080:8080"
+ 
+  roach-1:
+    command: start --insecure --join=roach-0,roach-1,roach-2
+    volumes:
+      - "cockroach_data:/cockroach/cockroach-data"
+ 
+  roach-2:
+    command: start --insecure --join=roach-0,roach-1,roach-2
+    volumes:
+      - "cockroach_data:/cockroach/cockroach-data"
+
+  init:
+    container_name: init
+    image: cockroachdb/cockroach:latest-v22.1
+    command: init --host=roach-0 --insecure
+    depends_on:
+      - roach-0
+
+volumes:
+  cockroach_data:
