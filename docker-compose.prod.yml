@@ -1,0 +1,82 @@
+services:
+  web:
+    build: 
+      context: ./web
+      dockerfile: Dockerfile.prod
+    command: gunicorn --bind 0.0.0.0:5000 manage:app
+    ports:
+      - 5000:5000
+    environment:
+      - FLASK_APP=project/__init__.py
+      - FLASK_DEBUG=0
+      - DATABASE_URL=cockroachdb://roach:roach@roach-0:26257/defaultdb
+      - SQL_HOST=roach-0
+      - SQL_PORT=26257
+      - DATABASE=cockroachdb
+
+  roach-cert:
+    container_name: roach-cert
+    hostname: roach-cert
+    build: roach-cert
+    volumes:
+      - certs-roach-0:/certs/roach-0
+      - certs-roach-1:/certs/roach-1
+      - certs-roach-2:/certs/roach-2
+      - certs-client:/certs/client
+
+  roach-0:
+    command: start --certs-dir=/certs --join=roach-0,roach-1,roach-2
+    volumes:
+      - certs-roach-0:/certs
+    depends_on:
+      - roach-cert
+
+  roach-1:
+    command: start --certs-dir=/certs --join=roach-0,roach-1,roach-2
+    volumes:
+      - certs-roach-0:/certs
+    depends_on:
+      - roach-cert
+
+  roach-2:
+    command: start --certs-dir=/certs --join=roach-0,roach-1,roach-2
+    volumes:
+      - certs-roach-0:/certs
+    depends_on:
+      - roach-cert
+
+  init:
+    container_name: init
+    image: cockroachdb/cockroach:latest-v22.1
+    command: init --host=roach-0 --certs-dir=/certs
+    volumes:
+      - certs-client:/certs
+    depends_on:
+      - roach-cert
+      - roach-0
+
+  lb:
+    container_name: lb
+    build: nginx
+    ports:
+      - "26257:26257"
+      - "8080:8080"
+    depends_on:
+      - roach-0
+      - roach-1
+      - roach-2
+
+  client:
+    container_name: client
+    image: cockroachdb/cockroach:latest-v22.1
+    entrypoint: ["tail", "-f", "/dev/null"]
+    volumes:
+      - certs-client:/certs
+    depends_on:
+      - lb
+
+volumes:
+  certs-roach-0:
+  certs-roach-1:
+  certs-roach-2:
+  certs-client:
