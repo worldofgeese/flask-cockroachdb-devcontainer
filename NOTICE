@@ -1,0 +1,6 @@
+The Initial Developer of `docker-compose.prod.yml`,
+`docker-compose-overrride.yml`, and `roach-cert/Dockerfile`
+is Artem Ervits (https://github.com/dbist).
+Copyright 2022 Artem Ervits.
+
+Modifications copyright 2022 Tao Hansen.
