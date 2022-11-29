@@ -51,10 +51,13 @@ COPY poetry.lock pyproject.toml ./
 RUN poetry install $(test ${PRODUCTION} == true && echo "--no-dev")
 
 # prepare to export requirements.txt
-RUN poetry self add poetry-plugin-export
+# RUN poetry self add poetry-plugin-export
 RUN poetry export -f requirements.txt --output requirements.txt
 
 WORKDIR /app
+
+RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
+    && echo "$SNIPPET" >> "/root/.bashrc"
 
 # USER vscode
 
