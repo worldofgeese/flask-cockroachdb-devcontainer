@@ -1,4 +1,10 @@
-/.venv
-/.garden
-/web/.garden
-/web/__pycache__
+**/.venv
+**/.garden
+**/__pycache__
+compose-roachless/Chart.yaml
+compose-roachless/README.md
+compose-roachless/templates/web-claim0-persistentvolumeclaim.yaml
+compose-roachless/templates/web-deployment.yaml
+compose-roachless/templates/web-service.yaml
+compose-roachless.yml
+compose-roachless.override.yml
