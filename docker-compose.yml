@@ -3,7 +3,7 @@ version: '3'
 services:
    web:
      container_name: web
-     image: worldofgeese/web:v0.1.0
+     image: worldofgeese/flask-cockroachdb-example:v0.1.0
 
    roach-0:
      image: cockroachdb/cockroach:v22.1.10
