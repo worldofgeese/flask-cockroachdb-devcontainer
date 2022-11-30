@@ -1,0 +1,17 @@
+version: '3.3'
+
+services:
+  web:
+    build: 
+      context: ./web
+      dockerfile: Dockerfile.prod
+    command: gunicorn --bind 0.0.0.0:5000 manage:app
+    ports:
+      - 5000:5000
+    environment:
+      - FLASK_APP=project/__init__.py
+      - FLASK_DEBUG=0
+      - DATABASE_URL=cockroachdb://roach:roach@roach-0:26257/defaultdb
+      - SQL_HOST=roach-0
+      - SQL_PORT=26257
+      - DATABASE=cockroachdb
