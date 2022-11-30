@@ -35,6 +35,10 @@ FROM python-poetry-base AS python-poetry-builder
 RUN apt-get update \
     && apt-get install --no-install-recommends --assume-yes curl
 
+RUN curl -L https://github.com/kubernetes/kompose/releases/download/v1.27.0/kompose-linux-amd64 -o kompose \
+    && chmod +x kompose \
+    && mv ./kompose /bin/kompose
+
 RUN curl -sSL https://install.python-poetry.org | python3 -
 
 ###############################################################################
@@ -42,6 +46,7 @@ RUN curl -sSL https://install.python-poetry.org | python3 -
 ###############################################################################
 FROM python-poetry-base AS python-poetry
 COPY --from=python-poetry-builder $POETRY_HOME $POETRY_HOME
+COPY --from=python-poetry-builder /bin/kompose /bin/kompose
 
 # just verifying poetry installed properly as this should not flag for another reason
 RUN echo poetry --version
@@ -58,6 +63,7 @@ WORKDIR /app
 
 RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
     && echo "$SNIPPET" >> "/root/.bashrc"
+
 
 # USER vscode
 
