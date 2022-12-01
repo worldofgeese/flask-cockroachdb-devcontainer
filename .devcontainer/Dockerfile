@@ -39,6 +39,10 @@ RUN curl -L https://github.com/kubernetes/kompose/releases/download/v1.27.0/komp
     && chmod +x kompose \
     && mv ./kompose /bin/kompose
 
+RUN curl -L https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o yq \
+    && chmod +x yq \
+    && mv ./yq /bin/yq
+
 RUN curl -sSL https://install.python-poetry.org | python3 -
 
 ###############################################################################
@@ -47,6 +51,7 @@ RUN curl -sSL https://install.python-poetry.org | python3 -
 FROM python-poetry-base AS python-poetry
 COPY --from=python-poetry-builder $POETRY_HOME $POETRY_HOME
 COPY --from=python-poetry-builder /bin/kompose /bin/kompose
+COPY --from=python-poetry-builder /bin/yq /bin/yq
 
 # just verifying poetry installed properly as this should not flag for another reason
 RUN echo poetry --version
