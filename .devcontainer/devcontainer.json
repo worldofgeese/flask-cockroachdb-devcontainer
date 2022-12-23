@@ -15,8 +15,11 @@
 
 	"mounts": [
         "source=${env:HOME}${env:USERPROFILE}/.kube,target=/usr/local/share/kube-localhost,type=bind",
+        "source=${env:HOME}${env:USERPROFILE}/.config/gcloud,target=/usr/local/share/gcloud-localhost,type=bind",
         "source=projectname-bashhistory,target=/commandhistory,type=volume"
 	],
+
+   "remoteEnv": { "USE_GKE_GCLOUD_AUTH_PLUGIN": "True" },
 
 	// Configure tool-specific properties.
 	"customizations": {
@@ -42,6 +45,7 @@
 				"ms-python.python",
 				"ms-python.vscode-pylance",
 				"ms-azuretools.vscode-docker",
+				"googlecloudtools.cloudcode",
 				"ms-kubernetes-tools.vscode-kubernetes-tools"
 			]
 		}
