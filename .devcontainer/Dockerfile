@@ -41,12 +41,18 @@ RUN curl -L https://github.com/kubernetes/kompose/releases/download/v1.27.0/komp
 
 RUN curl -sSL https://install.python-poetry.org | python3 -
 
+# Install garden
+RUN curl -sL https://get.garden.io/install.sh | bash
+
 ###############################################################################
 # POETRY RUNTIME IMAGE - Copies the poetry installation into a smaller image
 ###############################################################################
 FROM python-poetry-base AS python-poetry
 COPY --from=python-poetry-builder $POETRY_HOME $POETRY_HOME
 COPY --from=python-poetry-builder /bin/kompose /bin/kompose
+ENV PATH=/root/.garden/bin:${PATH}
+COPY --from=python-poetry-builder /root/.garden/bin/. /root/.garden/bin/
+
 # Install Google Cloud SDK to enable authorization to GKE clusters
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive && \
   apt-get -y install --no-install-recommends \
