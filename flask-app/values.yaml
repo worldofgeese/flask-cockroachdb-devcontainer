@@ -1,0 +1,8 @@
+databaseUser: roach
+databasePassword: roach
+databaseName: my-cockroachdb
+namespace: default
+secureCluster: false
+image:
+  name: flask-app
+  tag: latest

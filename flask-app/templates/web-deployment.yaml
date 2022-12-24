@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f compose-roachless.yml -f compose-roachless.override.yml -c -o flask-app
+    kompose.version: 1.27.0 (b0ed6a2c9)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: web
+  name: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: web
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f compose-roachless.yml -f compose-roachless.override.yml -c -o flask-app
+        kompose.version: 1.27.0 (b0ed6a2c9)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: web
+    spec:
+      containers:
+        - args:
+            - gunicorn
+            - --bind
+            - 0.0.0.0:5000
+            - manage:app
+          env:
+          {{- range $key, $value := .Values.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+          {{- end }}
+            - name: DATABASE
+              value: cockroachdb
+            - name: DATABASE_URL
+              value: cockroachdb://{{ .Values.databaseUser}}{{ if .Values.secureCluster}}:{{ .Values.databasePassword}}{{ end }}@{{ .Values.databaseName}}-public.{{ .Values.namespace}}.svc.cluster.local:26257/defaultdb
+            - name: FLASK_APP
+              value: project/__init__.py
+            - name: SQL_HOST
+              value: {{ .Values.databaseName}}
+            - name: SQL_PORT
+              value: "26257"
+          image: worldofgeese/{{ .Values.image.name}}:{{ .Values.image.tag}}
+          name: web
+          ports:
+            - containerPort: 5000
+          resources: {}
+      restartPolicy: Always
+status: {}
