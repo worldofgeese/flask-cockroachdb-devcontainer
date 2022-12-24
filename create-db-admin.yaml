@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cockroachdb-client-secure
+  labels:
+    app: cockroachdb-client
+spec:
+  completions: 1
+  template:
+    metadata:
+      labels:
+        app: cockroachdb-client
+    spec:
+      serviceAccountName: my-cockroachdb # Change to {release}
+      restartPolicy: Never
+      volumes:
+      - name: client-certs
+        projected:
+            sources:
+              - secret:
+                  name: my-cockroachdb-client-secret # Change to {release}-client-secret
+                  items:
+                    - key: ca.crt
+                      path: ca.crt
+                    - key: tls.crt
+                      path: client.root.crt
+                    - key: tls.key
+                      path: client.root.key
+            defaultMode: 256
+      containers:
+      - name: cockroachdb-client-secure
+        image: cockroachdb/cockroach:v22.2.0 # Change to cockroachdb/cockroach:{version}
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: client-certs
+          mountPath: /cockroach/cockroach-certs/
+        command:
+          - /bin/sh
+          - -c
+        args:  
+          - /cockroach/cockroach sql 
+            --certs-dir=/cockroach/cockroach-certs 
+            --host=my-cockroachdb-public 
+            --execute="CREATE USER IF NOT EXISTS roach WITH PASSWORD 'roach'"
+            --execute="GRANT ADMIN TO roach"
+      terminationGracePeriodSeconds: 0
