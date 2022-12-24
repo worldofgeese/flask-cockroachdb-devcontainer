@@ -58,3 +58,26 @@ values:
   tls:
     enabled: false
 
+---
+
+kind: Module
+type: kubernetes
+name: create-db-admin
+description: Job that creates a database admin user named roach, required for a secure CRDB cluster
+files: [ create-db-admin.yaml ]
+dependencies:
+  - my-cockroachdb
+serviceResource:
+  podSelector: 
+    app: cockroachdb-client
+tasks:
+  - name: db-init
+    command: [/bin/sh, -c]
+    args:  
+            - /cockroach/cockroach sql 
+              --certs-dir=/cockroach/cockroach-certs 
+              --host=my-cockroachdb-public 
+              --execute="CREATE USER IF NOT EXISTS roach WITH PASSWORD 'roach'"
+              --execute="GRANT ADMIN TO roach"
+    dependencies:
+      - my-cockroachdb
