@@ -1,0 +1,20 @@
+kind: Project
+name: flask-cockroachdb-example
+defaultEnvironment: dev
+variables:
+  username: worldofgeese
+
+environments:
+  - name: dev
+    defaultNamespace: flask-cockroachdb-example-${variables.username}
+  - name: prod
+    defaultNamespace: flask-cockroachdb-example
+    production: true
+
+providers:
+  - name: kubernetes
+    context: gke_devrel-348008_europe-north1_autopilot-cluster-1
+    namespace: ${environment.namespace}
+    deploymentRegistry:
+      hostname: "docker.io" # or any other container registry endpoint
+      namespace: "worldofgeese" # your user's registry namespace. On Docker Hub this is my username

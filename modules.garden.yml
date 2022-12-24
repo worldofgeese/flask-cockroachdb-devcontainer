@@ -1,0 +1,60 @@
+kind: Module
+type: helm
+name: flask-app
+releaseName: flask-app-${variables.username}
+chartPath: flask-app
+include:
+  - flask-app
+build:
+  dependencies: [flask-app-image]
+values:
+  databaseUser: root
+  namespace: ${environment.namespace}
+  image:
+    tag: ${modules.flask-app-image.version}
+  env:
+    FLASK_DEBUG: "${environment.name == 'prod' ? 0 : 1}"
+serviceResource:
+  kind: Deployment
+  name: web
+tasks:
+  - name: create-db
+    command: [/bin/sh, -c]
+    args:
+      - python manage.py create_db
+  - name: seed-db
+    command: [/bin/sh, -c]
+    args:
+      - python manage.py seed_db
+    dependencies:
+      - create-db
+dependencies:
+  - my-cockroachdb
+  - seed-db
+
+---
+
+kind: Module
+type: container
+name: flask-app-image
+exclude:
+  - flask-app
+dockerfile: "${environment.name == 'dev' ? 'Dockerfile.dev' : 'Dockerfile.prod'}"
+image: flask-app
+
+---
+
+kind: Module
+type: helm
+name: my-cockroachdb
+repo: https://charts.cockroachdb.com/
+chart: cockroachdb
+version: 10.0.0
+atomicInstall: false
+values:
+  storage:
+    persistentVolume:
+      size: "25Gi"
+  tls:
+    enabled: false
+
