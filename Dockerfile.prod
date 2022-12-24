@@ -19,11 +19,11 @@ RUN apt-get update && \
 # lint
 RUN pip install --upgrade pip
 RUN pip install flake8==3.9.1
-COPY . /usr/src/app/
+COPY web/ /usr/src/app/
 RUN flake8 --ignore=E501,F401 .
 
 # install python dependencies
-COPY ./requirements.txt .
+COPY web/requirements.txt .
 RUN pip wheel --no-cache-dir --no-deps --wheel-dir /usr/src/app/wheels -r requirements.txt
 
 
@@ -56,10 +56,10 @@ RUN pip install --upgrade pip
 RUN pip install --no-cache /wheels/*
 
 # copy entrypoint.sh
-COPY ./entrypoint.sh $APP_HOME
+COPY web/entrypoint.sh $APP_HOME
 
 # copy project
-COPY . $APP_HOME
+COPY web/ $APP_HOME
 
 # chown all the files to the app user
 RUN chown -R app:app $APP_HOME
