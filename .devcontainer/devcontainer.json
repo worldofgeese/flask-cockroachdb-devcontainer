@@ -9,13 +9,14 @@
 			// Update 'VARIANT' to pick a Python version: 3, 3.10, 3.9, 3.8, 3.7, 3.6
 			// Append -bullseye or -buster to pin to an OS version.
 			// Use -bullseye variants on local on arm64/Apple Silicon.
-			"VARIANT": "3.10-slim"
+			"VARIANT": "3.11-slim"
 		}
 	},
 
 	"mounts": [
         "source=${env:HOME}${env:USERPROFILE}/.kube,target=/usr/local/share/kube-localhost,type=bind",
         "source=${env:HOME}${env:USERPROFILE}/.config/gcloud,target=/usr/local/share/gcloud-localhost,type=bind",
+        "source=${env:HOME}${env:USERPROFILE}/.pulumi,target=/usr/local/share/pulumi-localhost,type=bind",
         "source=projectname-bashhistory,target=/commandhistory,type=volume"
 	],
 
@@ -58,11 +59,11 @@
 	// Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
 	// "remoteUser": "vscode",
 	"features": {
-      "docker-from-docker": "latest",
-      "kubectl-helm-minikube": {
-         "version": "latest",
-         "helm": "latest",
+      "ghcr.io/devcontainers/features/docker-from-docker:1": {
+         "dockerDashComposeVersion": "v2"
+	  },
+      "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
          "minikube": "none"
-    	},
+	  }
 	}
 }

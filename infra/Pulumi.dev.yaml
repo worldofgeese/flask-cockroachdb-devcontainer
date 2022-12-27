@@ -1,0 +1,5 @@
+config:
+  gcp:project: devrel-348008
+  gcp:region: europe-north1
+  kubernetes-gcp-python:nodesPerZone: "1"
+  pulumi:template: https://github.com/pulumi/templates/tree/master/kubernetes-gcp-python

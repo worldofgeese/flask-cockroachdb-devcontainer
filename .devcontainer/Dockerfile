@@ -1,57 +1,34 @@
-# See here for image contents
-ARG VARIANT="3.10-slim"
-FROM python:${VARIANT} as python-poetry-base
-
-# from stackoverflow
-ENV PYTHONFAULTHANDLER=1 \
-    PYTHONHASHSEED=random \
-    PYTHONWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_DEFAULT_TIMEOUT=100 \
-    PIP_DISABLE_PIP_VERSION_CHECK=on \
-    PIP_NO_CACHE_DIR=off \
-    \
-    # poetry vars
-    POETRY_VERSION=1.2.0 \
-    POETRY_HOME="/opt/poetry" \
-    POETRY_VIRTUALENVS_IN_PROJECT=true \
-    POETRY_NO_INTERACTION=true \
-    \
-    # paths
-    # this is where requirements will live
-    PYSETUP_PATH="/opt/setup" \
-    \
-    # this is where we toggle production or development mode
-    PRODUCTION=false
-
-# prepend poetry to path
-ENV PATH="$POETRY_HOME/bin:$PATH"
-
 ###############################################################################
 # POETRY BUILDER IMAGE - Installs Poetry and dependencies
 ###############################################################################
-FROM python-poetry-base AS python-poetry-builder
+FROM python:3.11-slim AS builder
 
+ENV PYTHONPATH=/root/.config/pdm/pep5 \
+    PDM_HOME=/ \
+    PULUMI_VERSION=3.50.2
+
+# install utility packages
 RUN apt-get update \
-    && apt-get install --no-install-recommends --assume-yes curl
-
-RUN curl -L https://github.com/kubernetes/kompose/releases/download/v1.27.0/kompose-linux-amd64 -o kompose \
+    && apt-get install --no-install-recommends --assume-yes curl \
+    && curl -L https://github.com/kubernetes/kompose/releases/download/v1.27.0/kompose-linux-amd64 -o kompose \
     && chmod +x kompose \
-    && mv ./kompose /bin/kompose
+    && mv ./kompose /bin/kompose \
+    && curl -sL https://get.garden.io/install.sh | bash \
+    && curl -fsSL https://get.pulumi.com/ | bash -s -- --version $PULUMI_VERSION \
+    && curl -sSL https://raw.githubusercontent.com/pdm-project/pdm/main/install-pdm.py | python3 -
 
-RUN curl -sSL https://install.python-poetry.org | python3 -
+# copy files
+COPY pyproject.toml pdm.lock /project/
+# COPY pyproject.toml pdm.lock /project/
 
-# Install garden
-RUN curl -sL https://get.garden.io/install.sh | bash
+# install dependencies and project into the local packages directory
+WORKDIR /project
+RUN mkdir __pypackages__ && pdm install --prod --no-lock --no-editable
 
 ###############################################################################
-# POETRY RUNTIME IMAGE - Copies the poetry installation into a smaller image
+# POETRY RUNTIME IMAGE - Copies PDM-installed packages into a smaller image
 ###############################################################################
-FROM python-poetry-base AS python-poetry
-COPY --from=python-poetry-builder $POETRY_HOME $POETRY_HOME
-COPY --from=python-poetry-builder /bin/kompose /bin/kompose
-ENV PATH=/root/.garden/bin:${PATH}
-COPY --from=python-poetry-builder /root/.garden/bin/. /root/.garden/bin/
+FROM python:3.11-slim
 
 # Install Google Cloud SDK to enable authorization to GKE clusters
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive && \
@@ -59,7 +36,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive && \
   rsync \
   curl \
   apt-transport-https\
-  ca-certificates= \
+  ca-certificates \
   gnupg \
   lsb-release && \
   echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
@@ -71,33 +48,14 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/*
 
-# just verifying poetry installed properly as this should not flag for another reason
-RUN echo poetry --version
-
-WORKDIR $PYSETUP_PATH
-COPY poetry.lock pyproject.toml ./
-RUN poetry install $(test ${PRODUCTION} == true && echo "--no-dev")
-
-# prepare to export requirements.txt
-# RUN poetry self add poetry-plugin-export
-RUN poetry export -f requirements.txt --output requirements.txt
-
-WORKDIR /app
+# retrieve packages from build stage
+ENV PYTHONPATH=/venv/lib/python3.11/site-packages/pdm/pep582:/project/pkgs
+COPY --from=builder /project/__pypackages__/3.11/lib /project/pkgs
+COPY --from=builder /bin/kompose /bin/kompose
+# ENV PATH=/root/.garden/bin:${PATH}
+COPY --from=builder /root/.garden/bin/. /bin/
+COPY --from=builder $PDM_HOME $PDM_HOME
+COPY --from=builder /root/.pulumi/bin/. /bin/
 
 RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
     && echo "$SNIPPET" >> "/root/.bashrc"
-
-
-# USER vscode
-
-# [Optional] If your pip requirements rarely change, uncomment this section to add them to the image.
-# COPY requirements.txt /tmp/pip-tmp/
-# RUN pip3 --disable-pip-version-check --no-cache-dir install -r /tmp/pip-tmp/requirements.txt \
-#    && rm -rf /tmp/pip-tmp
-
-# [Optional] Uncomment this section to install additional OS packages.
-# RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-#     && apt-get -y install --no-install-recommends <your-package-list-here>
-
-# [Optional] Uncomment this line to install global node packages.
-# RUN su vscode -c "source /usr/local/share/nvm/nvm.sh && npm install -g <your-package-here>" 2>&1
