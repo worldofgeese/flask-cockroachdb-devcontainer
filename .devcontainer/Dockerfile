@@ -1,10 +1,9 @@
 ###############################################################################
-# POETRY BUILDER IMAGE - Installs Poetry and dependencies
+# PDM BUILDER IMAGE - Installs PDM and dependencies
 ###############################################################################
 FROM python:3.11-slim AS builder
 
-ENV PYTHONPATH=/root/.config/pdm/pep5 \
-    PDM_HOME=/ \
+ENV PDM_HOME=/ \
     PULUMI_VERSION=3.50.2
 
 # install utility packages
@@ -19,14 +18,13 @@ RUN apt-get update \
 
 # copy files
 COPY pyproject.toml pdm.lock /project/
-# COPY pyproject.toml pdm.lock /project/
 
 # install dependencies and project into the local packages directory
 WORKDIR /project
-RUN mkdir __pypackages__ && pdm install --prod --no-lock --no-editable
+RUN mkdir __pypackages__ && pdm install
 
 ###############################################################################
-# POETRY RUNTIME IMAGE - Copies PDM-installed packages into a smaller image
+# PDM RUNTIME IMAGE - Copies PDM-installed packages into a smaller image
 ###############################################################################
 FROM mcr.microsoft.com/devcontainers/python:3.11
 
@@ -44,10 +42,14 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive && \
 ARG USERNAME=vscode
 
 # retrieve packages from build stage
-ENV PYTHONPATH=/venv/lib/python3.11/site-packages/pdm/pep582:/project/pkgs
-COPY --chown=$USERNAME --from=builder /project/__pypackages__/3.11/lib /project/pkgs
+ENV PYTHONPATH=/project/pkgs/3.11/lib
+ENV PATH="${PATH}:/project/pkgs/3.11/bin"
+COPY --chown=$USERNAME --from=builder /project/__pypackages__/. /project/pkgs
 COPY --from=builder /bin/kompose /bin/kompose
-COPY --from=builder /root/.garden/bin/. /bin/
+# Garden can't be installed to /bin because Git will complain of dubious
+# ownership so append a locally owned directory instead.
+ENV PATH=/home/$USERNAME/.garden/bin:${PATH}
+COPY --chown=$USERNAME --from=builder /root/.garden/bin/. /home/$USERNAME/.garden/bin/
 COPY --from=builder $PDM_HOME $PDM_HOME
 COPY --from=builder /root/.pulumi/bin/. /bin/
 
