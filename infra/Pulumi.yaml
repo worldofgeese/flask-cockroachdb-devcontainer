@@ -1,4 +1,0 @@
-name: kubernetes-gcp-python
-description: A Python program to deploy a Kubernetes cluster on Google Cloud
-runtime:
-    name: python
