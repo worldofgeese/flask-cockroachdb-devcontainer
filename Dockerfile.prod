@@ -3,69 +3,54 @@
 ###########
 
 # pull official base image
-FROM python:3.10-slim as builder
+FROM python:3.11-alpine as builder
 
 # set work directory
 WORKDIR /usr/src/app
 
-# set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+COPY web/. /usr/src/app/
 
-# install system dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends gcc
+RUN apk add --no-cache \
+    # build tools needed for psycopg2 required by sqlalchemy-cochroachdb
+    postgresql-libs \
+    && apk add --no-cache --virtual .build-deps gcc musl-dev postgresql-dev \
+    # build tool needed to build greenlet
+    g++ \
+    && pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir flake8==3.9.1 \
+    && pip wheel --no-cache-dir --no-deps --wheel-dir /usr/src/app/wheels -r requirements.txt \
+    && apk --purge del .build-deps
 
-# lint
-RUN pip install --upgrade pip
-RUN pip install flake8==3.9.1
-COPY web/ /usr/src/app/
 RUN flake8 --ignore=E501,F401 .
-
-# install python dependencies
-COPY web/requirements.txt .
-RUN pip wheel --no-cache-dir --no-deps --wheel-dir /usr/src/app/wheels -r requirements.txt
-
 
 #########
 # FINAL #
 #########
 
 # pull official base image
-FROM python:3.10-slim
+FROM python:3.11-alpine
 
-# create directory for the app user
-RUN mkdir -p /home/app
-
-# create the app user
-RUN addgroup --system app && adduser --system --group app
-
-# create the appropriate directories
-ENV HOME=/home/app
-ENV APP_HOME=/home/app/web
-RUN mkdir $APP_HOME
-WORKDIR $APP_HOME
-
-# install dependencies
-RUN apt-get update && apt-get install -y \
-    netcat \
-  && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /usr/src/app/wheels /wheels
-COPY --from=builder /usr/src/app/requirements.txt .
-RUN pip install --upgrade pip
-RUN pip install --no-cache /wheels/*
+COPY --from=builder /usr/src/app/requirements.txt /usr/src/app/
 
-# copy entrypoint.sh
-COPY web/entrypoint.sh $APP_HOME
+RUN apk add --no-cache netcat-openbsd \
+    postgresql-libs \
+    && pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache /wheels/*
 
-# copy project
-COPY web/ $APP_HOME
+# Creates a non-root user with an explicit UID and adds permission to access the /app folder
+# For more info, please refer to https://aka.ms/vscode-docker-python-configure-containers
+RUN adduser -u 5678 --disabled-password --gecos "" appuser && chown -R appuser /usr/src/app
+USER appuser
 
-# chown all the files to the app user
-RUN chown -R app:app $APP_HOME
+COPY --chmod=755 --from=builder /usr/src/app/project/. /usr/src/app/project/
+COPY --chmod=755 --from=builder /usr/src/app/tests/. /usr/src/app/tests/
+COPY --chmod=755 --from=builder /usr/src/app/manage.py /usr/src/app/manage.py
+COPY --chmod=755 --from=builder /usr/src/app/entrypoint.sh /usr/src/app/entrypoint.sh
 
-# change to the app user
-USER app
+# set work directory
+WORKDIR /usr/src/app
 
 # run entrypoint.sh
-ENTRYPOINT ["/home/app/web/entrypoint.sh"]
+ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
