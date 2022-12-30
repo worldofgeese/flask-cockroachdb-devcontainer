@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-pdm install
+eval "$(pdm --pep582)"
+
 pdm export -o requirements.txt
 
 mkdir -p $HOME/.kube
