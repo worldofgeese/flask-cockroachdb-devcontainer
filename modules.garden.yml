@@ -11,6 +11,7 @@ values:
   databaseUser: root
   namespace: ${environment.namespace}
   image:
+    repository: ${modules.flask-app-image.outputs.deployment-image-name}
     tag: ${modules.flask-app-image.version}
   env:
     FLASK_DEBUG: "${environment.name == 'prod' ? 0 : 1}"
@@ -22,14 +23,25 @@ tasks:
     command: [/bin/sh, -c]
     args:
       - python manage.py create_db
+    dependencies:
+      - my-cockroachdb
   - name: seed-db
     command: [/bin/sh, -c]
     args:
       - python manage.py seed_db
     dependencies:
       - create-db
+devMode:
+  command: [flask, --debug, run, --host=0.0.0.0]
+  sync:
+    - source: web/project
+      target: /usr/src/app
+tests:
+  - name: my-test
+    command: [pytest]
+    dependencies:
+      - flask-app
 dependencies:
-  - my-cockroachdb
   - seed-db
 
 ---
@@ -57,4 +69,22 @@ values:
       size: "25Gi"
   tls:
     enabled: false
+---
+
+kind: Module
+type: pulumi
+name: flask-app-cloud-run
+autoApply: true
+root: pulumi
+include:
+ - pulumi
+build:
+  dependencies:
+    - flask-app-image
+pulumiVariables:
+  kubernetes-gcp-python:flask_app_container_image: ${modules.flask-app-image.outputs.deployment-image-id}
+  kubernetes-gcp-python:location: asia-northeast1
+  kubernetes-gcp-python:project: devrel-348008
+  kubernetes-gcp-python:container_port: 5000
+
 
