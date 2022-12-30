@@ -6,5 +6,12 @@ compose-roachless/README.md
 compose-roachless/templates/web-claim0-persistentvolumeclaim.yaml
 compose-roachless/templates/web-deployment.yaml
 compose-roachless/templates/web-service.yaml
+**/.terraform
 .pdm.toml
 __pypackages__/
+**.hcl
+terraform/garden.tfvars.json
+terraform/kubeconfig.yaml
+terraform/terraform.tfstate.backup
+terraform/terraform.tfstate
+pulumi/Pulumi.dev.yaml
