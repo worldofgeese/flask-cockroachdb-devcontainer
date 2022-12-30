@@ -24,11 +24,12 @@ spec:
         io.kompose.service: web
     spec:
       containers:
-        - args:
-            - gunicorn
-            - --bind
-            - 0.0.0.0:5000
-            - manage:app
+        - command: ["gunicorn", "--bind", "0.0.0.0:5000", "manage:app"]
+        # - args:
+        #     - gunicorn
+        #     - --bind
+        #     - 0.0.0.0:5000
+        #     - manage:app
           env:
           {{- range $key, $value := .Values.env }}
             - name: {{ $key }}
@@ -44,7 +45,7 @@ spec:
               value: {{ .Values.databaseName}}
             - name: SQL_PORT
               value: "26257"
-          image: worldofgeese/{{ .Values.image.name}}:{{ .Values.image.tag}}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           name: web
           ports:
             - containerPort: 5000
