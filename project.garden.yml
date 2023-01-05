@@ -2,19 +2,21 @@ kind: Project
 name: flask-cockroachdb-example
 defaultEnvironment: dev
 variables:
+  # change these values to your own
   username: worldofgeese
   terraformInitRoot: "./terraform/"
+  registryHostname: docker.io
+  registryNamespace: worldofgeese
+  gcpProjectId: devrel-348008
+  gcpRegion: asia-northeast1 # Google Cloud Run is only available in some regions. If you receive HTTP errors on deploy, change your region.
+  
 
 environments:
   - name: dev
     defaultNamespace: flask-cockroachdb-example-${variables.username}
-    variables:
-      hostname: dev.worldofgeese.devrel.demo.garden
   - name: prod
     defaultNamespace: flask-cockroachdb-example
     production: true
-    variables:
-      hostname: worldofgeese.devrel.demo.garden
 
 providers:
   - name: terraform
@@ -25,20 +27,16 @@ providers:
     # You can either uncomment and replace these with your own values, or provide the values in a
     # terraform.tfvars file in the project root.
     variables:
-      project_id: devrel-348008
-      region: europe-north1
+      project_id: ${var.gcpProjectId}
+      region: ${var.gcpRegion}
 
   - name: kubernetes
     context: ${providers.terraform.outputs.cluster_name}
     kubeconfig: ${var.terraformInitRoot}/${providers.terraform.outputs.kubeconfig_path}
     namespace: ${environment.namespace}
-    defaultHostname: dev.worldofgeese.devrel.demo.garden
     deploymentRegistry:
-      hostname: europe-north1-docker.pkg.dev
-      namespace: devrel-348008/worldofgeese-repo
-    imagePullSecrets:
-      - name: regcred
-        namespace: default
+      hostname: "${var.registryHostname}"
+      namespace: "${var.registryNamespace}"
 
   - name: pulumi
     version: null # Set to `null` to use whichever version of `pulumi` is on your PATH.

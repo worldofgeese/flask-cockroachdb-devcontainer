@@ -83,8 +83,8 @@ build:
     - flask-app-image
 pulumiVariables:
   kubernetes-gcp-python:flask_app_container_image: ${modules.flask-app-image.outputs.deployment-image-id}
-  kubernetes-gcp-python:location: asia-northeast1
-  kubernetes-gcp-python:project: devrel-348008
+  kubernetes-gcp-python:location: "${var.gcpRegion}"
+  kubernetes-gcp-python:project: "${var.gcpProjectId}"
   kubernetes-gcp-python:container_port: 5000
 
 
