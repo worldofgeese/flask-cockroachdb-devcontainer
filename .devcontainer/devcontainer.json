@@ -3,7 +3,9 @@
 {
 	"build": {
 		"dockerfile": "Dockerfile",
-		"context": ".."
+		"context": "..",
+        "target": "devcontainer",
+		"cacheFrom": "docker.io/worldofgeese/flask-cockroachdb-devcontainer:1-garden"
 	},
 
 	"mounts": [
@@ -52,19 +54,18 @@
 	// Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
 	"remoteUser": "vscode",
 	"features": {
-      "ghcr.io/devcontainers/features/common-utils:2":{
-          "installZsh": "false",
-          "username": "vscode",
-          "uid": "1000",
-          "gid": "1000",
-          "upgradePackages": "true"
-      },
+      "ghcr.io/devcontainers/features/python:1": {
+		"version": "3.11"
+	  },
+      "ghcr.io/devcontainers/features/nix:1": {
+		"multiUser": "false",
+		"packages": "pdm, kompose"
+	  },
       "ghcr.io/devcontainers/features/docker-from-docker:1": {
          "dockerDashComposeVersion": "v2"
 	  },
-	  "ghcr.io/devcontainers/features/terraform:1": {},
-      "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
-         "minikube": "none"
+      "ghcr.io/devcontainers/features/common-utils:2": {
+        "configureZshAsDefaultShell": "true"
 	  }
 	}
 }

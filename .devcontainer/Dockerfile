@@ -1,17 +1,18 @@
 ###############################################################################
 # PDM BUILDER IMAGE - Installs PDM and dependencies
 ###############################################################################
+# pull official base image
 FROM python:3.11-slim AS builder
 
-ENV PDM_HOME=/ \
-    PULUMI_VERSION=3.50.2
+EXPOSE 5000
 
-# install utility packages
-RUN apt-get update \
-    && apt-get install --no-install-recommends --assume-yes curl \
-    && curl -L https://github.com/kubernetes/kompose/releases/download/v1.27.0/kompose-linux-amd64 -o kompose \
-    && chmod +x kompose \
-    && mv ./kompose /bin/kompose \
+# set work directory
+WORKDIR /usr/src/app
+
+ENV PDM_HOME=/
+ENV PULUMI_VERSION=3.50.2
+
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
     && curl -sL https://get.garden.io/install.sh | bash \
     && curl -fsSL https://get.pulumi.com/ | bash -s -- --version $PULUMI_VERSION \
     && curl -sSL https://raw.githubusercontent.com/pdm-project/pdm/main/install-pdm.py | python3 -
@@ -26,7 +27,7 @@ RUN mkdir __pypackages__ && pdm install
 ###############################################################################
 # PDM RUNTIME IMAGE - Copies PDM-installed packages into a smaller image
 ###############################################################################
-FROM mcr.microsoft.com/devcontainers/python:3.11
+FROM mcr.microsoft.com/devcontainers/base:debian as devcontainer
 
 # Install Google Cloud SDK to enable authorization to GKE clusters
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive && \
@@ -45,17 +46,8 @@ ARG USERNAME=vscode
 ENV PYTHONPATH=/project/pkgs/3.11/lib
 ENV PATH="${PATH}:/project/pkgs/3.11/bin"
 COPY --chown=$USERNAME --from=builder /project/__pypackages__/. /project/pkgs
-COPY --from=builder /bin/kompose /bin/kompose
 # Garden can't be installed to /bin because Git will complain of dubious
 # ownership so append a locally owned directory instead.
 ENV PATH=/home/$USERNAME/.garden/bin:${PATH}
 COPY --chown=$USERNAME --from=builder /root/.garden/bin/. /home/$USERNAME/.garden/bin/
-COPY --from=builder $PDM_HOME $PDM_HOME
 COPY --from=builder /root/.pulumi/bin/. /bin/
-
-## `chown` gives `invalid user`
-# RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
-#     && mkdir -p /commandhistory \
-#     && touch /commandhistory/.bash_history \
-#     && chown -R $USERNAME /commandhistory \
-#     && echo "$SNIPPET" >> "/home/$USERNAME/.bashrc"
